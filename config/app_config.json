@@ -1,0 +1,62 @@
+{
+  "wallet": {
+    "name": "B2B2C Wallet",
+    "appId": "com.b2b2c.wallet",
+    "flavors": {
+      "customerA": {
+        "displayName": "Customer A Wallet",
+        "appId": "com.customerA.wallet",
+        "primaryColor": "#1E88E5",
+        "secondaryColor": "#42A5F5"
+      },
+      "customerB": {
+        "displayName": "Customer B Wallet",
+        "appId": "com.customerB.wallet",
+        "primaryColor": "#7B1FA2",
+        "secondaryColor": "#9C27B0"
+      },
+      "customerC": {
+        "displayName": "Customer C Wallet",
+        "appId": "com.customerC.wallet",
+        "primaryColor": "#00897B",
+        "secondaryColor": "#26A69A"
+      }
+    }
+  },
+  "security": {
+    "sslPinning": {
+      "enabled": true,
+      "certificateHashes": [
+        "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+      ]
+    },
+    "hmac": {
+      "enabled": true,
+      "timestampValiditySeconds": 60,
+      "nonceLength": 32
+    },
+    "antiDebug": {
+      "enabled": true,
+      "ptraceEnabled": true,
+      "debuggerDetectionInterval": 5000
+    }
+  },
+  "network": {
+    "apiBaseUrl": "https://api.b2b2c-wallet.com",
+    "websocketUrl": "wss://ws.b2b2c-wallet.com",
+    "chainRpcUrls": {
+      "ethereum": "https://eth-mainnet.b2b2c-wallet.com",
+      "bsc": "https://bsc-mainnet.b2b2c-wallet.com",
+      "polygon": "https://polygon-mainnet.b2b2c-wallet.com"
+    }
+  },
+  "dapp": {
+    "supportedChains": ["ethereum", "bsc", "polygon"],
+    "timeout": 30000,
+    "危险合约警告": {
+      "approve": "0x095ea7b3",
+      "setApprovalForAll": "0xa22cb465",
+      "transferFrom": "0x23b872dd"
+    }
+  }
+}

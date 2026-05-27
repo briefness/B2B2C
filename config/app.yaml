@@ -1,0 +1,164 @@
+name: B2B2C Wallet
+
+type: file_types
+description: B2B2C Cryptocurrency Wallet Application
+author: B2B2C Team
+website: https://b2b2c-wallet.com
+
+flutter:
+  assets:
+    - path: assets/images/
+      filters:
+        - image
+
+  fonts:
+    - family: WalletFont
+      fonts:
+        - asset: assets/fonts/WalletFont-Regular.ttf
+        - asset: assets/fonts/WalletFont-Bold.ttf
+          weight: 700
+
+android:
+  app:
+    package: com.b2b2c.wallet
+    version_code: 1
+    version_name: "1.0.0"
+    min_sdk_version: 23
+    target_sdk_version: 34
+
+  flavors:
+    customerA:
+      application_label: "Customer A Wallet"
+      package_suffix: ".customerA"
+      app_name: "CustomerA"
+      
+    customerB:
+      application_label: "Customer B Wallet"
+      package_suffix: ".customerB"
+      app_name: "CustomerB"
+      
+    customerC:
+      application_label: "Customer C Wallet"
+      package_suffix: ".customerC"
+      app_name: "CustomerC"
+
+  signing:
+    release:
+      key_alias: "b2b2c_wallet_key"
+      key_password: "${KEY_PASSWORD}"
+      store_password: "${STORE_PASSWORD}"
+      store_file: "config/keystore/release.keystore"
+
+ios:
+  app:
+    bundle_id: com.b2b2c.wallet
+    version: "1.0.0"
+    build_number: "1"
+    min_os_version: "13.0"
+
+  signing:
+    development:
+      team_id: "${DEVELOPMENT_TEAM_ID}"
+      code_sign_style: Automatic
+      
+    release:
+      team_id: "${RELEASE_TEAM_ID}"
+      code_sign_style: Manual
+      provisioning_profile: "config/provisioning/release.mobileprovision"
+
+  flavors:
+    customerA:
+      display_name: "Customer A Wallet"
+      bundle_id_suffix: ".customerA"
+      
+    customerB:
+      display_name: "Customer B Wallet"
+      bundle_id_suffix: ".customerB"
+      
+    customerC:
+      display_name: "Customer C Wallet"
+      bundle_id_suffix: ".customerC"
+
+rust:
+  core:
+    path: rust_core
+    features:
+      - default
+      - full_crypto
+      - bip39
+      - bip44
+      - secp256k1
+      - ed25519
+      - aes_gcm
+      - hmac_sha
+      - zeroize_memory
+    
+  build:
+    optimization: speed
+    lto: true
+    strip: true
+    codegen_units: 1
+
+security:
+  ssl_pinning:
+    enabled: true
+    hash_algorithm: sha256
+    certificates:
+      - name: api.b2b2c-wallet.com
+        hash: "${API_CERT_HASH}"
+      - name: ws.b2b2c-wallet.com
+        hash: "${WS_CERT_HASH}"
+    # 证书轮换备用
+    backup_certificates:
+      - name: api.b2b2c-wallet.com (backup)
+        hash: "${API_CERT_HASH_BACKUP}"
+      - name: ws.b2b2c-wallet.com (backup)
+        hash: "${WS_CERT_HASH_BACKUP}"
+    # 是否允许自签名证书 (生产环境必须为 false)
+    allow_self_signed: false
+
+  hmac:
+    enabled: true
+    algorithm: sha256
+    timestamp_tolerance: 60
+    # HMAC 密钥 (通过环境变量注入，不要硬编码)
+    key: "${HMAC_KEY}"
+
+  b2b_config_signing:
+    enabled: true
+    # B 端配置签名公钥 (通过环境变量注入)
+    public_key: "${B2B_CONFIG_PUBLIC_KEY}"
+
+  anti_debug:
+    enabled: true
+    check_interval: 5000
+    actions:
+      - log
+      - exit_on_frida
+      - exit_on_xposed
+
+network:
+  api:
+    base_url: "${API_BASE_URL}"
+    timeout: 30000
+    retry_count: 3
+    
+  websocket:
+    url: "${WS_URL}"
+    reconnect_interval: 5000
+    max_reconnect_attempts: 10
+    
+  chain_rpc:
+    ethereum: "${ETH_RPC_URL}"
+    bsc: "${BSC_RPC_URL}"
+    polygon: "${POLYGON_RPC_URL}"
+
+features:
+  biometrics: true
+  secure_keyboard: true
+  dapp_browser: true
+  multi_chain:
+    - ethereum
+    - bsc
+    - polygon
+  multi_tenant: true

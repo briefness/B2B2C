@@ -1,0 +1,8 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+FLUTTER_BUILD_MODE=Release
+
+// Rust 核心库链接配置
+HEADER_SEARCH_PATHS = $(inherited) $(PROJECT_DIR)/Frameworks/Headers
+OTHER_LDFLAGS = $(inherited) -force_load $(PROJECT_DIR)/Frameworks/RustCore.xcframework/ios-arm64/libb2b2c_wallet_core.a

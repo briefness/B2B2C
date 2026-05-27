@@ -1,0 +1,26 @@
+{
+  "ssl_pinning": {
+    "enabled": true,
+    "allow_self_signed": false,
+    "api_certificates": [
+      "sha256/PLACEHOLDER_API_CERT_HASH"
+    ],
+    "ws_certificates": [
+      "sha256/PLACEHOLDER_WS_CERT_HASH"
+    ],
+    "backup_certificates": []
+  },
+  "hmac": {
+    "enabled": true,
+    "timestamp_tolerance": 60
+  },
+  "b2b": {
+    "config_signing": {
+      "enabled": true,
+      "public_key": ""
+    }
+  },
+  "anti_debug": {
+    "enabled": true
+  }
+}

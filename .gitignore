@@ -1,0 +1,70 @@
+# 构建输出目录
+build/
+
+# Rust 编译输出
+rust_core/target/
+
+# Flutter 符号文件
+symbols/
+
+# Flutter 缓存
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+
+# iOS 构建
+ios/Pods/
+ios/build/
+ios/Runner.ipa
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/App.framework
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Runner.app
+
+# Android 构建
+android/.gradle/
+android/build/
+android/app/build/
+android/app/*.aab
+android/app/*.apk
+android/.idea/
+android/*.iml
+android/local.properties
+
+# macOS
+*.xcuserstate
+*.xcworkspace
+!ios/Runner.xcworkspace
+DerivedData/
+
+# 日志
+*.log
+
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 测试覆盖率
+coverage/
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*~

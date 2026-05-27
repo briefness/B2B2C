@@ -1,0 +1,56 @@
+[package]
+name = "b2b2c_wallet"
+description = "B2B2C Cryptocurrency Wallet with Rust Core"
+version = "1.0.0"
+edition = "2021"
+authors = ["B2B2C Team"]
+
+[lib]
+name = "b2b2c_wallet_core"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[dependencies]
+# 密码学库
+ring = "0.17"
+secp256k1 = { version = "0.28", features = ["global-context", "recovery"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+sha2 = "0.10"
+hmac = "0.12"
+aes-gcm = "0.10"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+zeroize = { version = "1.7", features = ["derive"] }
+
+# 哈希
+tiny-keccak = { version = "2.0", features = ["keccak"] }
+getrandom = "0.2"
+hex = "0.4"
+
+# 助记词 (BIP39)
+bip39 = "2.0"
+
+# HD 钱包 (BIP32/BIP44)
+bip32 = "0.5"
+
+# 序列化
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# 错误处理
+thiserror = "1.0"
+anyhow = "1.0"
+
+# 日志
+log = "0.4"
+env_logger = "0.11"
+
+# 跨平台支持
+libc = "0.2"
+cfg-if = "1.0"
+
+[profile.release]
+opt-level = "z"      # 最大体积优化
+lto = true           # 链接时优化
+codegen-units = 1    # 单编译单元
+strip = true         # 剥离符号
+panic = "abort"      # 恐慌时中止

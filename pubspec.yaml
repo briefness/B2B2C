@@ -1,0 +1,103 @@
+name: b2b2c_wallet
+description: B2B2C Cryptocurrency Wallet App
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # 状态管理
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # 网络
+  dio: ^5.4.0
+  web_socket_channel: ^2.4.0
+
+  # 加密/安全
+  pointycastle: ^3.7.3
+  crypto: ^3.0.3
+  encrypt: ^5.0.3
+  asn1lib: ^1.4.1
+  pem: ^2.0.4
+
+  # 数据存储
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.2
+  flutter_secure_storage: ^9.0.0
+
+  # UI 组件
+  cupertino_icons: ^1.0.6
+  flutter_svg: ^2.0.9
+  cached_network_image: ^3.3.1
+  shimmer: ^3.0.0
+
+  # 工具类
+  uuid: ^4.3.1
+  intl: ^0.20.2
+  collection: ^1.18.0
+  equatable: ^2.0.5
+  json_annotation: ^4.8.1
+
+  # FFI
+  ffi: ^2.1.0
+
+  # WebView - 使用 webview_flutter
+  webview_flutter: ^4.4.2
+
+  # 本地化
+  flutter_localizations:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+  build_runner: ^2.4.8
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.3.9
+  hive_generator: ^2.0.1
+  flutter_flavorizr: ^2.5.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
+
+  fonts:
+    - family: WalletFont
+      fonts:
+        # - asset: assets/fonts/WalletFont-Regular.ttf
+        # - asset: assets/fonts/WalletFont-Bold.ttf
+        #   weight: 700
+
+flavorizr:
+  flavors:
+    customerA:
+      app:
+        name: "Customer A Wallet"
+      android:
+        applicationId: "com.b2b2c.wallet.customerA"
+      ios:
+        bundleId: "com.b2b2c.wallet.customerA"
+    customerB:
+      app:
+        name: "Customer B Wallet"
+      android:
+        applicationId: "com.b2b2c.wallet.customerB"
+      ios:
+        bundleId: "com.b2b2c.wallet.customerB"
+    customerC:
+      app:
+        name: "Customer C Wallet"
+      android:
+        applicationId: "com.b2b2c.wallet.customerC"
+      ios:
+        bundleId: "com.b2b2c.wallet.customerC"

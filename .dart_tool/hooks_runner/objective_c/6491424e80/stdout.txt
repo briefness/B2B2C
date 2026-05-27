@@ -1,0 +1,53 @@
+Running `(cd /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/; ANDROID_HOME=/Users/lucas/Library/Android/sdk TMPDIR=/var/folders/ly/n3482gyj0xs_20q5d190nv240000gn/T/ ANDROID_NDK_ROOT=/Users/lucas/Library/Android/sdk/ndk/30.0.14904198 PATH=/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Resources:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/libexec:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/usr/local/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/local/bin:/Applications/Xcode.app/Contents/Developer/usr/bin:/Applications/Xcode.app/Contents/Developer/usr/local/bin:/Users/lucas/.gemini/antigravity-ide/bin:/Users/lucas/.antigravity-ide/antigravity-ide/bin:/Users/lucas/.antigravity/antigravity/bin:/Users/lucas/.pyenv/shims:/Users/lucas/.local/bin:/Users/lucas/flutter/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/Users/lucas/n/bin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/opt/pmk/env/global/bin:/Library/Apple/usr/bin:/Users/lucas/.cargo/bin:/Users/lucas/Library/Android/sdk/emulator:/Users/lucas/Library/Android/sdk/platform-tools:/opt/homebrew/opt/fzf/bin HOME=/Users/lucas ANDROID_NDK_HOME=/Users/lucas/Library/Android/sdk/ndk/30.0.14904198 /Users/lucas/flutter/bin/cache/dart-sdk/bin/dart --packages=/Users/lucas/Desktop/B2B2C/.dart_tool/package_config.json /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/objective_c/6491424e80/hook.dill --config=/Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/objective_c/6491424e80/input.json )`.
+INFO: 2026-05-27 15:57:01.825478: Using compiler /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang from BuildInput.cCompiler.cc.
+
+INFO: 2026-05-27 15:57:01.828711: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/include/dart_api_dl.c -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-27 15:57:01.829668: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/objective_c.c -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c.c.o
+
+INFO: 2026-05-27 15:57:01.829936: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/input_stream_adapter.m -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-27 15:57:01.830623: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/objective_c_bindings_generated.m -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c_bindings_generated.m.o
+
+pplications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/ns_number.m -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/ns_number.m.o
+INFO: 2026-05-27 15:57:01.830544: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 -x objective-c -fobjc-arc -c /Users/lucas/.pub-cache/hosted/pub.dev/objective_c-9.4.1/src/protocol.m -fpic -gline-tables-only -I src -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/protocol.m.o
+
+INFO: 2026-05-27 15:57:01.871754: 
+INFO: 2026-05-27 15:57:01.871894: 
+INFO: 2026-05-27 15:57:01.871926: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/include/dart_api_dl.c.o
+
+INFO: 2026-05-27 15:57:01.881158: 
+INFO: 2026-05-27 15:57:01.881215: 
+INFO: 2026-05-27 15:57:01.881228: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c.c.o
+
+INFO: 2026-05-27 15:57:01.896301: 
+INFO: 2026-05-27 15:57:01.896342: 
+INFO: 2026-05-27 15:57:01.896352: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/protocol.m.o
+
+INFO: 2026-05-27 15:57:01.898555: 
+INFO: 2026-05-27 15:57:01.898740: 
+INFO: 2026-05-27 15:57:01.898798: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/observer.m.o
+
+INFO: 2026-05-27 15:57:01.991743: 
+INFO: 2026-05-27 15:57:01.991791: 
+INFO: 2026-05-27 15:57:01.991802: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/ns_number.m.o
+
+INFO: 2026-05-27 15:57:01.997692: 
+INFO: 2026-05-27 15:57:01.997746: 
+INFO: 2026-05-27 15:57:01.997758: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c.m.o
+
+INFO: 2026-05-27 15:57:02.001703: 
+INFO: 2026-05-27 15:57:02.001750: 
+INFO: 2026-05-27 15:57:02.001766: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/input_stream_adapter.m.o
+
+INFO: 2026-05-27 15:57:02.027354: 
+INFO: 2026-05-27 15:57:02.027402: 
+INFO: 2026-05-27 15:57:02.027412: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c_bindings_generated.m.o
+
+INFO: 2026-05-27 15:57:02.027785: Running: /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -shared -Wl,-encryptable -undefined dynamic_lookup -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator26.2.sdk -target x86_64-apple-ios-simulator -mios-version-min=13 /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/include/dart_api_dl.c.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c.c.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/input_stream_adapter.m.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c.m.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/observer.m.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/ns_number.m.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/protocol.m.o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/obj/src/objective_c_bindings_generated.m.o -o /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/objective_c.dylib
+
+INFO: 2026-05-27 15:57:02.053253: 
+INFO: 2026-05-27 15:57:02.053305: ld: warning: -undefined dynamic_lookup is deprecated on iOS-simulator
+
+INFO: 2026-05-27 15:57:02.053315: Generated /Users/lucas/Desktop/B2B2C/.dart_tool/hooks_runner/shared/objective_c/build/6491424e80/objective_c.dylib
+

@@ -1,0 +1,36 @@
+{
+  "flutter": {
+    "flavors": [
+      {
+        "name": "customerA",
+        "displayName": "Customer A Wallet",
+        "appId": "com.customerA.wallet",
+        "primaryColor": "#1E88E5",
+        "secondaryColor": "#42A5F5",
+        "logoPath": "assets/images/logo_a.png",
+        "splashColor": "#1E88E5",
+        "apiBaseUrl": "https://api.customer-a.b2b2c-wallet.com"
+      },
+      {
+        "name": "customerB",
+        "displayName": "Customer B Wallet",
+        "appId": "com.customerB.wallet",
+        "primaryColor": "#7B1FA2",
+        "secondaryColor": "#9C27B0",
+        "logoPath": "assets/images/logo_b.png",
+        "splashColor": "#7B1FA2",
+        "apiBaseUrl": "https://api.customer-b.b2b2c-wallet.com"
+      },
+      {
+        "name": "customerC",
+        "displayName": "Customer C Wallet",
+        "appId": "com.customerC.wallet",
+        "primaryColor": "#00897B",
+        "secondaryColor": "#26A69A",
+        "logoPath": "assets/images/logo_c.png",
+        "splashColor": "#00897B",
+        "apiBaseUrl": "https://api.customer-c.b2b2c-wallet.com"
+      }
+    ]
+  }
+}

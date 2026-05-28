@@ -8,6 +8,7 @@ rust_core/target/
 symbols/
 
 # Flutter 缓存
+.dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
 .packages

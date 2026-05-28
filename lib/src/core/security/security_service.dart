@@ -70,27 +70,42 @@ class SecurityService {
   }
   
   Future<bool> _checkRooted() async {
-    final result = await _methodChannel.checkRooted();
-    if (result.rooted) {
-      debugPrint('[Security] Root detected: ${result.reasons}');
+    try {
+      final result = await _methodChannel.checkRooted();
+      if (result.rooted) {
+        debugPrint('[Security] Root detected: ${result.reasons}');
+      }
+      return result.rooted;
+    } catch (e) {
+      debugPrint('[Security] Root check unavailable (native not implemented): $e');
+      return false;
     }
-    return result.rooted;
   }
   
   Future<bool> _checkDebugger() async {
-    final isDebugged = await _methodChannel.checkDebugger();
-    if (isDebugged) {
-      debugPrint('[Security] Debugger detected');
+    try {
+      final isDebugged = await _methodChannel.checkDebugger();
+      if (isDebugged) {
+        debugPrint('[Security] Debugger detected');
+      }
+      return isDebugged;
+    } catch (e) {
+      debugPrint('[Security] Debugger check unavailable: $e');
+      return false;
     }
-    return isDebugged;
   }
   
   Future<bool> _checkHookFrameworks() async {
-    final result = await _methodChannel.checkHookFrameworks();
-    if (result.hooked) {
-      debugPrint('[Security] Hook frameworks detected: ${result.frameworks}');
+    try {
+      final result = await _methodChannel.checkHookFrameworks();
+      if (result.hooked) {
+        debugPrint('[Security] Hook frameworks detected: ${result.frameworks}');
+      }
+      return result.hooked;
+    } catch (e) {
+      debugPrint('[Security] Hook check unavailable: $e');
+      return false;
     }
-    return result.hooked;
   }
   
   void _logSecurityThreat(bool rooted, bool debugged, bool hooked) {
@@ -108,23 +123,26 @@ class SecurityService {
   
   /// 执行完整安全检查 (实时)
   Future<SecurityCheckResult> performSecurityCheck() async {
-    final results = await Future.wait([
-      _methodChannel.checkRooted(),
-      _methodChannel.checkDebugger(),
-      _methodChannel.checkHookFrameworks(),
-    ]);
-    
-    final rootResult = results[0] as RootDetectionResult;
-    final debuggerResult = results[1] as bool;
-    final hookResult = results[2] as HookDetectionResult;
-    
-    return SecurityCheckResult(
-      isRooted: rootResult.rooted,
-      rootedReasons: rootResult.reasons,
-      isDebugged: debuggerResult,
-      isHooked: hookResult.hooked,
-      hookedFrameworks: hookResult.frameworks,
-    );
+    try {
+      final results = await Future.wait([
+        _checkRooted(),
+        _checkDebugger(),
+        _checkHookFrameworks(),
+      ]);
+      
+      return SecurityCheckResult(
+        isRooted: results[0],
+        isDebugged: results[1],
+        isHooked: results[2],
+      );
+    } catch (e) {
+      debugPrint('[Security] Security check failed: $e');
+      return SecurityCheckResult(
+        isRooted: false,
+        isDebugged: false,
+        isHooked: false,
+      );
+    }
   }
   
   /// 检查是否可以安全进行敏感操作

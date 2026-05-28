@@ -1,8 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/security/secure_storage_service.dart';
+import '../../core/security/security_service.dart';
 import '../../services/wallet_service.dart';
 import '../widgets/anti_reverse_shield.dart';
+import '../widgets/secure_keyboard.dart';
 
 /// 钱包服务 Provider
 final walletServiceProvider = Provider<WalletService>((ref) {
@@ -280,7 +284,10 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
   Wallet? _wallet;
   bool _isCreating = false;
   bool _showMnemonic = false;
-  int _currentStep = 0;
+  int _currentStep = 0; // 0=创建, 1=助记词, 2=设置PIN, 3=确认PIN
+  
+  String? _firstPin;
+  String? _pinError;
   
   Future<void> _createWallet() async {
     setState(() => _isCreating = true);
@@ -297,14 +304,91 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
     });
   }
   
+  void _onPinSet(String pin) {
+    setState(() {
+      _firstPin = pin;
+      _pinError = null;
+      _currentStep = 3;
+    });
+  }
+  
+  Future<void> _onPinConfirm(String pin) async {
+    if (pin == _firstPin) {
+      // PIN 一致，执行安全存储
+      final storage = SecureStorageService();
+      final security = SecurityService();
+      
+      // 安全环境检查（Release 模式下阻止不安全环境）
+      final canProceed = await security.canPerformSensitiveOperation();
+      if (!canProceed && !kDebugMode) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('检测到不安全环境，无法完成操作')),
+          );
+        }
+        return;
+      }
+      
+      // 存储 PIN 哈希到安全存储
+      await storage.writeSecure('wallet_pin', pin);
+      
+      // 存储助记词到安全存储
+      if (_wallet != null && _mnemonic != null) {
+        await storage.writeMnemonic(_wallet!.id, _mnemonic!);
+      }
+      
+      if (mounted) {
+        Navigator.of(context).pop(_wallet);
+      }
+    } else {
+      setState(() {
+        _pinError = 'PIN 不一致，请重新输入';
+        _currentStep = 2;
+        _firstPin = null;
+      });
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('创建钱包'),
+        title: Text(_getStepTitle()),
+        leading: _currentStep > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  if (_currentStep == 1) {
+                    Navigator.of(context).pop();
+                  } else {
+                    setState(() => _currentStep = _currentStep - 1);
+                  }
+                },
+              )
+            : null,
       ),
-      body: _currentStep == 0 ? _buildCreateForm() : _buildShowMnemonic(),
+      body: _buildCurrentStep(),
     );
+  }
+  
+  String _getStepTitle() {
+    switch (_currentStep) {
+      case 0: return '创建钱包';
+      case 1: return '备份助记词';
+      case 2: return '设置 PIN';
+      case 3: return '确认 PIN';
+      default: return '创建钱包';
+    }
+  }
+  
+  Widget _buildCurrentStep() {
+    switch (_currentStep) {
+      case 0: return _buildCreateForm();
+      case 1: return _buildShowMnemonic();
+      case 2: return _buildSetPin();
+      case 3: return _buildConfirmPin();
+      default: return _buildCreateForm();
+    }
   }
   
   Widget _buildCreateForm() {
@@ -437,11 +521,104 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
             child: ElevatedButton(
               onPressed: _showMnemonic
                   ? () {
-                      // 确认已备份
-                      Navigator.of(context).pop(_wallet);
+                      setState(() => _currentStep = 2);
                     }
                   : null,
-              child: const Text('我已备份，继续'),
+              child: const Text('我已备份，下一步'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildSetPin() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          
+          Icon(
+            Icons.lock_outline,
+            size: 48,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 16),
+          
+          Text(
+            '设置 6 位 PIN 码',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '用于保护您的钱包安全',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          
+          if (_pinError != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _pinError!,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.error,
+                fontSize: 14,
+              ),
+            ),
+          ],
+          
+          const SizedBox(height: 32),
+          
+          Expanded(
+            child: SecureKeyboard(
+              keyboardType: SecureKeyboardType.pin,
+              maxLength: 6,
+              obscureText: true,
+              onComplete: _onPinSet,
+              errorText: _pinError,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildConfirmPin() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 32),
+          
+          Icon(
+            Icons.lock_outline,
+            size: 48,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(height: 16),
+          
+          Text(
+            '再次输入 PIN 码',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '请确认您的 PIN 码',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+          
+          const SizedBox(height: 32),
+          
+          Expanded(
+            child: SecureKeyboard(
+              keyboardType: SecureKeyboardType.pin,
+              maxLength: 6,
+              obscureText: true,
+              onComplete: _onPinConfirm,
             ),
           ),
         ],
@@ -449,6 +626,7 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
     );
   }
 }
+
 
 /// 导入钱包页面
 class ImportWalletPage extends ConsumerStatefulWidget {

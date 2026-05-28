@@ -79,25 +79,53 @@ flutter:
         #   weight: 700
 
 flavorizr:
+  # 只运行平台配置步骤，跳过 flutter:app / flutter:main / flutter:pages
+  # 防止覆盖业务代码（main.dart, app.dart, pages/）
+  instructions:
+    - assets:download
+    - assets:extract
+    - android:androidManifest
+    - android:flavorizrGradle
+    - android:buildGradle
+    - android:dummyAssets
+    - android:icons
+    - ios:podfile
+    - ios:xcconfig
+    - ios:buildTargets
+    - ios:schema
+    - ios:dummyAssets
+    - ios:icons
+    - ios:plist
+    - ios:launchScreen
+    - google:firebase
+    - huawei:agconnect
+    - assets:clean
+    - ide:config
   flavors:
     customerA:
       app:
         name: "Customer A Wallet"
       android:
         applicationId: "com.b2b2c.wallet.customerA"
+        icon: "assets/icons/icon_customer_a.png"
       ios:
         bundleId: "com.b2b2c.wallet.customerA"
+        icon: "assets/icons/icon_customer_a.png"
     customerB:
       app:
         name: "Customer B Wallet"
       android:
         applicationId: "com.b2b2c.wallet.customerB"
+        icon: "assets/icons/icon_customer_b.png"
       ios:
         bundleId: "com.b2b2c.wallet.customerB"
+        icon: "assets/icons/icon_customer_b.png"
     customerC:
       app:
         name: "Customer C Wallet"
       android:
         applicationId: "com.b2b2c.wallet.customerC"
+        icon: "assets/icons/icon_customer_c.png"
       ios:
         bundleId: "com.b2b2c.wallet.customerC"
+        icon: "assets/icons/icon_customer_c.png"

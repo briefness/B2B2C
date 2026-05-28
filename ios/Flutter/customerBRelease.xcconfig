@@ -1,10 +1,7 @@
-#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release-customerb.xcconfig"
 #include "Generated.xcconfig"
+#include "RustCore.xcconfig"
 
 ASSET_PREFIX=customerB
 BUNDLE_NAME=Customer B Wallet
 BUNDLE_DISPLAY_NAME=Customer B Wallet
-
-// Rust 核心库
-HEADER_SEARCH_PATHS = $(inherited) $(PROJECT_DIR)/Frameworks/Headers
-OTHER_LDFLAGS = $(inherited) -force_load $(PROJECT_DIR)/Frameworks/RustCore.xcframework/ios-arm64/libb2b2c_wallet_core.a

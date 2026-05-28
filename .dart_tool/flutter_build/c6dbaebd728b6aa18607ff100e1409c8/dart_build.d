@@ -1,1 +1,0 @@
- /Users/lucas/Desktop/B2B2C/.dart_tool/flutter_build/c6dbaebd728b6aa18607ff100e1409c8/dart_build_result.json:  /Users/lucas/Desktop/B2B2C/.dart_tool/package_config.json /Users/lucas/Desktop/B2B2C/pubspec.yaml /Users/lucas/flutter/bin/cache/dart-sdk/version

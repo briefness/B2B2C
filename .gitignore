@@ -43,6 +43,7 @@ DerivedData/
 
 # 日志
 *.log
+tasks/*
 
 # 环境变量
 .env

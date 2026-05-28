@@ -20,7 +20,10 @@ class App extends StatelessWidget {
       child: MaterialApp(
         title: F.title,
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: F.primaryColor,
+            secondary: F.secondaryColor,
+          ),
           useMaterial3: true,
         ),
         debugShowCheckedModeBanner: false,
@@ -150,8 +153,8 @@ class _SecurityGuardState extends State<SecurityGuard> with WidgetsBindingObserv
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
                   color: _currentState == SecurityState.secure
-                      ? Colors.green.withOpacity(0.8)
-                      : Colors.red.withOpacity(0.8),
+                      ? Colors.green.withAlpha(204)
+                      : Colors.red.withAlpha(204),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -214,7 +217,7 @@ class WelcomePage extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
-                      color: theme.colorScheme.primary.withOpacity(0.3),
+                      color: theme.colorScheme.primary.withAlpha(77),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),

@@ -1,7 +1,4 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
 #include "Generated.xcconfig"
+#include "RustCore.xcconfig"
 FLUTTER_BUILD_MODE=Debug
-
-// Rust 核心库链接配置
-HEADER_SEARCH_PATHS = $(inherited) $(PROJECT_DIR)/Frameworks/Headers
-OTHER_LDFLAGS = $(inherited) -force_load $(PROJECT_DIR)/Frameworks/RustCore.xcframework/ios-arm64-simulator/libb2b2c_wallet_core.a

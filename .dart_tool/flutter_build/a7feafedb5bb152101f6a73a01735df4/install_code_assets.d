@@ -1,1 +1,0 @@
- /Users/lucas/Desktop/B2B2C/.dart_tool/flutter_build/a7feafedb5bb152101f6a73a01735df4/native_assets.json: 

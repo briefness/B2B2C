@@ -1,0 +1,12 @@
+// Rust 核心库链接配置 (所有 flavor 共享)
+// 此文件不受 flutter_flavorizr 管理，不会被覆盖
+
+HEADER_SEARCH_PATHS = $(inherited) $(PROJECT_DIR)/Frameworks/Headers
+
+// 根据构建目标自动选择架构:
+// - 模拟器 (arm64-simulator): Debug 默认目标
+// - 真机 (arm64): Release/Profile 目标
+// 使用 xcframework 时 Xcode 会自动选择正确的架构切片，
+// 但 force_load 需要指定具体路径，因此通过条件变量处理
+OTHER_LDFLAGS[sdk=iphonesimulator*] = $(inherited) -force_load $(PROJECT_DIR)/Frameworks/RustCore.xcframework/ios-arm64-simulator/libb2b2c_wallet_core.a
+OTHER_LDFLAGS[sdk=iphoneos*] = $(inherited) -force_load $(PROJECT_DIR)/Frameworks/RustCore.xcframework/ios-arm64/libb2b2c_wallet_core.a

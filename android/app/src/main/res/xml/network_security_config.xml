@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 网络安全配置
+     禁止所有明文 HTTP 通信，仅允许 HTTPS -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- TODO: 添加 SSL Pinning 配置（当占位符替换为真实证书后）
+    <domain-config>
+        <domain includeSubdomains="true">api.b2b2c-wallet.com</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">REPLACE_WITH_REAL_HASH=</pin>
+        </pin-set>
+    </domain-config>
+    -->
+</network-security-config>

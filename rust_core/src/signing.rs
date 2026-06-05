@@ -41,11 +41,11 @@ impl TransactionSigner {
         r.copy_from_slice(&sig_data[..32]);
         s.copy_from_slice(&sig_data[32..64]);
         
-        // 计算 V 值
-        let rec_id = recovery_id.to_i32() as u8;
+        // 计算 V 值 (u64 避免大 chain_id 截断)
+        let rec_id = recovery_id.to_i32() as u64;
         let v = if let Some(cid) = chain_id {
             // EIP-155: v = recovery_id + chain_id * 2 + 35
-            (rec_id as u64 + cid * 2 + 35) as u8
+            rec_id + cid * 2 + 35
         } else {
             // Legacy: v = recovery_id + 27
             rec_id + 27
@@ -124,16 +124,24 @@ impl TransactionSigner {
 pub struct Signature {
     pub r: [u8; 32],
     pub s: [u8; 32],
-    pub v: u8,
+    /// V 值使用 u64 以支持 EIP-155 大 chain_id (e.g. Polygon 137 → v=309)
+    pub v: u64,
 }
 
 impl Signature {
-    /// 编码为字节
-    pub fn to_bytes(&self) -> [u8; 65] {
-        let mut bytes = [0u8; 65];
-        bytes[0..32].copy_from_slice(&self.r);
-        bytes[32..64].copy_from_slice(&self.s);
-        bytes[64] = self.v;
+    /// 编码为字节 (r || s || v)
+    ///
+    /// 注意：当 v <= 255 时仍为 65 字节（兼容 legacy），
+    /// 当 v > 255 时使用 8 字节编码 v 值。
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(72);
+        bytes.extend_from_slice(&self.r);
+        bytes.extend_from_slice(&self.s);
+        if self.v <= 255 {
+            bytes.push(self.v as u8);
+        } else {
+            bytes.extend_from_slice(&self.v.to_be_bytes());
+        }
         bytes
     }
     
@@ -147,9 +155,9 @@ impl Signature {
         let bytes = hex::decode(hex_str)
             .map_err(|_| WalletError::EncodingError("无效的十六进制编码".to_string()))?;
         
-        if bytes.len() != 65 {
+        if bytes.len() < 65 {
             return Err(WalletError::EncodingError(
-                format!("签名长度应为 65 字节, 实际为 {} 字节", bytes.len())
+                format!("签名长度至少为 65 字节, 实际为 {} 字节", bytes.len())
             ));
         }
         
@@ -158,21 +166,30 @@ impl Signature {
         r.copy_from_slice(&bytes[0..32]);
         s.copy_from_slice(&bytes[32..64]);
         
-        Ok(Self {
-            r,
-            s,
-            v: bytes[64],
-        })
+        // v 值解码：1 字节 (legacy) 或 8 字节 (large chain_id)
+        let v = if bytes.len() == 65 {
+            bytes[64] as u64
+        } else if bytes.len() >= 72 {
+            let mut v_bytes = [0u8; 8];
+            v_bytes.copy_from_slice(&bytes[64..72]);
+            u64::from_be_bytes(v_bytes)
+        } else {
+            return Err(WalletError::EncodingError(
+                format!("签名长度异常: {} 字节", bytes.len())
+            ));
+        };
+        
+        Ok(Self { r, s, v })
     }
     
     /// 获取恢复 ID (从 V 值提取)
     pub fn recovery_id(&self, chain_id: Option<u64>) -> u8 {
         if let Some(cid) = chain_id {
             // EIP-155: recovery_id = v - chain_id * 2 - 35
-            ((self.v as u64).saturating_sub(cid * 2 + 35)) as u8
+            (self.v.saturating_sub(cid * 2 + 35)) as u8
         } else {
             // Legacy: recovery_id = v - 27
-            self.v.saturating_sub(27)
+            (self.v.saturating_sub(27)) as u8
         }
     }
 }

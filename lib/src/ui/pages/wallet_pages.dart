@@ -573,6 +573,7 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
           
           Expanded(
             child: SecureKeyboard(
+              key: const ValueKey('pin_set'),
               keyboardType: SecureKeyboardType.pin,
               maxLength: 6,
               obscureText: true,
@@ -615,6 +616,7 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
           
           Expanded(
             child: SecureKeyboard(
+              key: const ValueKey('pin_confirm'),
               keyboardType: SecureKeyboardType.pin,
               maxLength: 6,
               obscureText: true,

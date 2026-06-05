@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:asn1lib/asn1lib.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
@@ -98,28 +99,38 @@ class SecureNetworkService {
       
       // ========== SSL Certificate Pinning ==========
       if (_enableSSLPinning) {
+        // ⚠️ 重要架构限制：
+        // Dart 的 badCertificateCallback 仅在系统证书校验「失败」时触发。
+        // 系统校验通过时不会回调，因此这里的 pin 校验是「在系统校验失败时
+        // 作为额外放行依据」。真正严格的 SPKI pinning 需要原生层 (OkHttp
+        // CertificatePinner / iOS URLSession) 配合。
+        // 当前实现：保留系统校验 + SPKI 公钥哈希作为补充校验。
         client.badCertificateCallback = (X509Certificate cert, String host, int port) {
-          // 计算服务器证书的 SHA-256 哈希
-          final certHash = _computeCertHash(cert);
-          final certHashStr = 'sha256/$certHash';
-          
-          // 检查主证书白名单
-          for (final expected in _certificateHashes) {
-            if (_constantTimeCompare(certHashStr, expected)) {
-              return true; // 证书在白名单中，放行
+          // debug 模式下检测占位符哈希，避免误以为 pinning 生效
+          assert(() {
+            final hasPlaceholder = _certificateHashes
+                .any((h) => h.contains('AAAA') || h.contains('BBBB'));
+            if (hasPlaceholder) {
+              debugPrint('[SSL Pinning] ⚠️ 警告：证书哈希仍是占位符，pinning 未真正生效！');
             }
-          }
-          
-          // 检查备用证书白名单
-          for (final expected in _backupCertificateHashes) {
+            return true;
+          }());
+
+          // 计算服务器证书的 SPKI 公钥 SHA-256 哈希
+          final pinHash = _computeSpkiHash(cert);
+          if (pinHash == null) return false;
+          final certHashStr = 'sha256/$pinHash';
+
+          // 检查主 + 备用证书白名单
+          for (final expected in [..._certificateHashes, ..._backupCertificateHashes]) {
             if (_constantTimeCompare(certHashStr, expected)) {
               return true;
             }
           }
-          
+
           // 证书不在白名单中，拒绝连接 (可能是 MITM 攻击)
           if (kDebugMode) {
-            debugPrint('[SSL Pinning] Certificate hash mismatch!');
+            debugPrint('[SSL Pinning] Public key hash mismatch!');
             debugPrint('[SSL Pinning] Got: $certHashStr');
           }
           return false;
@@ -130,11 +141,47 @@ class SecureNetworkService {
     };
   }
   
-  /// 计算证书 SHA-256 哈希 (Base64 编码)
-  String _computeCertHash(X509Certificate cert) {
-    final derBytes = cert.der;
-    final hash = sha256.convert(derBytes);
-    return base64Encode(hash.bytes);
+  /// 计算证书的 SubjectPublicKeyInfo (SPKI) SHA-256 哈希 (Base64 编码)
+  ///
+  /// 相比对整张证书 DER 做哈希，SPKI 公钥哈希在证书续期（同一密钥对）时
+  /// 仍然有效，是行业标准 (HPKP / OkHttp CertificatePinner) 的做法。
+  ///
+  /// 注：Dart 的 X509Certificate 未直接暴露 SPKI 字段，这里从 DER 中解析
+  /// SubjectPublicKeyInfo。解析失败时返回 null（fail-closed）。
+  String? _computeSpkiHash(X509Certificate cert) {
+    try {
+      final spki = _extractSpki(cert.der);
+      if (spki == null) return null;
+      final hash = sha256.convert(spki);
+      return base64Encode(hash.bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 从证书 DER 中提取 SubjectPublicKeyInfo
+  ///
+  /// X.509 结构: Certificate → TBSCertificate → ... → subjectPublicKeyInfo
+  /// SPKI 本身是一个 SEQUENCE，包含算法标识和公钥位串。
+  Uint8List? _extractSpki(Uint8List der) {
+    try {
+      final parser = ASN1Parser(der);
+      final cert = parser.nextObject() as ASN1Sequence;
+      final tbsCert = cert.elements.first as ASN1Sequence;
+      // 遍历 TBSCertificate 元素，找到 SubjectPublicKeyInfo (SEQUENCE 内含 BIT STRING)
+      for (final element in tbsCert.elements) {
+        if (element is ASN1Sequence) {
+          final hasBitString =
+              element.elements.any((e) => e is ASN1BitString);
+          if (hasBitString) {
+            return element.encodedBytes;
+          }
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
   
   /// 恒定时间字符串比较 — 防止时序攻击

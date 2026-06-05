@@ -7,7 +7,7 @@ use sha2::{Sha256, Sha512, Digest};
 use hmac::{Hmac, Mac};
 use aes_gcm::{
     Aes256Gcm,
-    aead::{Aead, KeyInit},
+    aead::{Aead, KeyInit, Payload},
 };
 
 /// AES-GCM 加密器
@@ -28,7 +28,7 @@ impl AesGcmEncryptor {
         key: &[u8; 32],
         nonce: &[u8; 12],
         plaintext: &[u8],
-        _aad: Option<&[u8]>,
+        aad: Option<&[u8]>,
     ) -> Result<Vec<u8>> {
         if plaintext.is_empty() {
             return Ok(Vec::new());
@@ -37,7 +37,13 @@ impl AesGcmEncryptor {
         let cipher = Aes256Gcm::new(key.into());
         let nonce = aes_gcm::Nonce::from_slice(nonce);
         
-        cipher.encrypt(nonce, plaintext)
+        // 使用 Payload 传递 AAD，确保密文与上下文绑定
+        let payload = match aad {
+            Some(aad_bytes) => Payload { msg: plaintext, aad: aad_bytes },
+            None => Payload { msg: plaintext, aad: b"" },
+        };
+        
+        cipher.encrypt(nonce, payload)
             .map_err(|e| WalletError::CryptoError(format!("AES-GCM 加密失败: {}", e)))
     }
     
@@ -48,7 +54,7 @@ impl AesGcmEncryptor {
         key: &[u8; 32],
         nonce: &[u8; 12],
         ciphertext: &[u8],
-        _aad: Option<&[u8]>,
+        aad: Option<&[u8]>,
     ) -> Result<Vec<u8>> {
         if ciphertext.is_empty() {
             return Ok(Vec::new());
@@ -62,7 +68,13 @@ impl AesGcmEncryptor {
         let cipher = Aes256Gcm::new(key.into());
         let nonce = aes_gcm::Nonce::from_slice(nonce);
         
-        cipher.decrypt(nonce, ciphertext)
+        // 使用 Payload 传递 AAD，解密时必须使用与加密相同的 AAD
+        let payload = match aad {
+            Some(aad_bytes) => Payload { msg: ciphertext, aad: aad_bytes },
+            None => Payload { msg: ciphertext, aad: b"" },
+        };
+        
+        cipher.decrypt(nonce, payload)
             .map_err(|e| WalletError::CryptoError(format!("AES-GCM 解密失败 (认证标签验证不通过): {}", e)))
     }
 }

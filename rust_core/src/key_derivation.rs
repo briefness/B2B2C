@@ -7,6 +7,7 @@ use hmac::{Hmac, Mac};
 use sha2::Sha512;
 use secp256k1::{Secp256k1, SecretKey, PublicKey};
 use tiny_keccak::{Keccak, Hasher};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// BIP44 路径参数
 #[derive(Debug, Clone)]
@@ -171,10 +172,15 @@ impl KeyDeriver {
 }
 
 /// 扩展密钥
-#[derive(Debug, Clone)]
+///
+/// 包含私钥和链码等敏感数据，drop 时自动从内存清零。
+#[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct ExtendedKey {
+    #[zeroize(skip)]
     pub depth: u8,
+    #[zeroize(skip)]
     pub parent_fingerprint: [u8; 4],
+    #[zeroize(skip)]
     pub child_index: u32,
     pub chain_code: [u8; 32],
     pub key: [u8; 32],

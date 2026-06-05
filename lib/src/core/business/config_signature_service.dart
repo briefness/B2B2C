@@ -1,6 +1,6 @@
 import 'dart:convert';
-import 'dart:typed_data';
-import 'package:pointycastle/export.dart';
+
+import '../crypto/ecdsa_utils.dart';
 
 // ==================== 独立类型定义 ====================
 
@@ -76,14 +76,14 @@ class ConfigSignatureService {
   
   // ==================== 配置 ====================
   
-  /// 内置的公钥 (用于验证配置签名)
-  /// ⚠️ 生产环境应使用 SecurityConfigService 动态加载
-  /// 
-  /// 获取 B2B 配置签名公钥:
-  /// 1. 从 B 端管理后台获取公钥
-  /// 2. 或使用 secp256k1 私钥导出公钥
-  static const String builtinPublicKey = 
-      '04B2D8A4F5C3E9D1A7B6C5E4F3D2A1B9C8D7E6F5A4B3C2D1E0F9A8B7C6D5E4F3A2B1C0D9E8F7A6B5C4D3E2F1A0B9C8D7E6F5A4B3C2D1E0F9';
+  /// 内置的 secp256k1 公钥 (用于验证配置签名)
+  ///
+  /// 格式：非压缩公钥 (04 + X(32字节) + Y(32字节))，共 130 个 hex 字符。
+  /// ⚠️ 生产环境必须替换为真实的 B 端配置签名公钥，并优先通过
+  ///    SecurityConfigService 动态加载 + 公钥 pinning。
+  /// ⚠️ 签名私钥仅存在于 B 端签发服务，绝不内置于客户端。
+  static const String builtinPublicKey =
+      '04PLACEHOLDER_REPLACE_WITH_REAL_SECP256K1_PUBLIC_KEY_0000000000000000000000000000000000000000000000000000000000000000';
   
   /// 可配置的公钥 (从 SecurityConfigService 加载)
   String? _configurablePublicKey;
@@ -250,61 +250,26 @@ class ConfigSignatureService {
     return sorted;
   }
   
-  /// 生成签名
+  /// 生成签名 (secp256k1 ECDSA)
+  ///
+  /// ⚠️ 仅用于测试和 B 端管理工具。客户端不应持有签名私钥。
+  /// 返回 DER 编码的签名 (hex)。
   String _sign(String message, String privateKeyHex) {
-    // 使用 ECDSA (secp256k1) 签名
-    final keyBytes = _hexToBytes(privateKeyHex);
-    final messageBytes = utf8.encode(message);
-    
-    // 计算消息哈希
-    final digest = SHA256Digest();
-    final hash = digest.process(Uint8List.fromList(messageBytes));
-    
-    // 简化实现：使用 HMAC-SHA256 模拟签名
-    // 生产环境应使用真正的 ECDSA
-    final hmac = HMac(SHA256Digest(), 64);
-    hmac.init(KeyParameter(keyBytes));
-    final signature = hmac.process(hash);
-    
-    return _bytesToHex(signature);
+    return Secp256k1Utils.signMessage(
+      message: message,
+      privateKeyHex: privateKeyHex,
+    );
   }
-  
-  /// 验证签名
+
+  /// 验证签名 (secp256k1 ECDSA)
+  ///
+  /// 使用内置/动态加载的公钥验证 DER 编码的 ECDSA 签名。
+  /// pointycastle 的验签内部已是恒定时间，无需手动比较。
   bool _verifySignature(String message, String signature, String publicKeyHex) {
-    // 计算消息哈希
-    final messageBytes = utf8.encode(message);
-    final digest = SHA256Digest();
-    final hash = digest.process(Uint8List.fromList(messageBytes));
-    
-    // 使用公钥重新计算签名
-    final publicKeyBytes = _hexToBytes(publicKeyHex);
-    final hmac = HMac(SHA256Digest(), 64);
-    hmac.init(KeyParameter(publicKeyBytes));
-    final expectedSignature = hmac.process(hash);
-    
-    // 常数时间比较
-    return _constantTimeCompare(signature, _bytesToHex(expectedSignature));
-  }
-  
-  /// 常数时间比较 - 防止时序攻击
-  bool _constantTimeCompare(String a, String b) {
-    if (a.length != b.length) return false;
-    var result = 0;
-    for (var i = 0; i < a.length; i++) {
-      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
-    }
-    return result == 0;
-  }
-  
-  static Uint8List _hexToBytes(String hex) {
-    final result = Uint8List(hex.length ~/ 2);
-    for (var i = 0; i < hex.length; i += 2) {
-      result[i ~/ 2] = int.parse(hex.substring(i, i + 2), radix: 16);
-    }
-    return result;
-  }
-  
-  static String _bytesToHex(Uint8List bytes) {
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return Secp256k1Utils.verifyMessage(
+      message: message,
+      signatureHex: signature,
+      publicKeyHex: publicKeyHex,
+    );
   }
 }

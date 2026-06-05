@@ -335,16 +335,20 @@ class _SecureKeyboardState extends State<SecureKeyboard> with SingleTickerProvid
   
   Widget _buildNumberKeyboard(Color btnColor, Color pressedColor) {
     final digits = _layout.digits;
-    final rows = <List<String>>[];
     
-    for (var i = 0; i < digits.length; i += 3) {
-      final end = (i + 3 > digits.length) ? digits.length : i + 3;
-      rows.add(digits.sublist(i, end));
+    // 标准 PIN 键盘布局: 前 9 个数字排 3×3 网格，
+    // 第 10 个数字放在底行中间 [删除 | 数字 | 确认]
+    final gridDigits = digits.sublist(0, 9);
+    final lastDigit = digits.length > 9 ? digits[9] : '0';
+    
+    final rows = <List<String>>[];
+    for (var i = 0; i < gridDigits.length; i += 3) {
+      rows.add(gridDigits.sublist(i, i + 3));
     }
     
     return Column(
       children: [
-        // 数字行
+        // 3×3 数字网格
         ...rows.map((row) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 4),
@@ -357,14 +361,14 @@ class _SecureKeyboardState extends State<SecureKeyboard> with SingleTickerProvid
           );
         }),
         
-        // 底部行: 删除 + 0 + 确认
+        // 底部行: 删除 + 第10个数字 + 确认
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildKey('delete', btnColor, pressedColor, isIcon: true, icon: Icons.backspace_outlined),
-              _buildKey(digits[0], btnColor, pressedColor),
+              _buildKey(lastDigit, btnColor, pressedColor),
               _buildConfirmKey(btnColor, pressedColor),
             ],
           ),

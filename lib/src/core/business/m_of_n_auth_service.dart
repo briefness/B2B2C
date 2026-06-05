@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import '../crypto/ecdsa_utils.dart';
 import '../ffi/ffi.dart';
 
 /// M-of-N 多签审批服务
@@ -14,6 +15,11 @@ class MofNAuthService {
 
   final _pendingRequests = <String, MofNRequest>{};
   final _approvedSignatures = <String, List<ApprovalSignature>>{};
+
+  /// 审批人公钥映射: approverId → secp256k1 公钥 (hex)
+  ///
+  /// 生产环境应从可信服务端加载并做公钥 pinning。
+  final _approverPublicKeys = <String, String>{};
   
   /// 创建多签请求
   /// 
@@ -168,13 +174,28 @@ class MofNAuthService {
         .toList();
   }
   
-  /// 签名请求内容
+  /// 签名请求内容 (secp256k1 ECDSA)
+  ///
+  /// [privateKeyHex] - 审批人的 secp256k1 私钥
+  /// 返回 DER 编码的 ECDSA 签名 (hex)
   String signRequest(String requestId, String privateKeyHex) {
     final request = _pendingRequests[requestId];
     if (request == null) return '';
-    
+
     final signData = _buildSignData(request);
-    return WalletFFIService().hmacSha256(privateKeyHex, signData);
+    return Secp256k1Utils.signMessage(
+      message: signData,
+      privateKeyHex: privateKeyHex,
+    );
+  }
+
+  /// 加载审批人公钥
+  ///
+  /// 生产环境应从可信服务端加载，并做公钥 pinning / TLS 保护。
+  void loadApproverPublicKeys(Map<String, String> keys) {
+    _approverPublicKeys
+      ..clear()
+      ..addAll(keys);
   }
   
   Future<bool> _verifyApprovalSignature({
@@ -184,14 +205,22 @@ class MofNAuthService {
   }) async {
     final request = _pendingRequests[requestId];
     if (request == null) return false;
-    
-    // TODO: 从服务器验证公钥
+
+    // 获取审批人公钥
+    final publicKey = _approverPublicKeys[approverId];
+    if (publicKey == null || publicKey.isEmpty) {
+      // 审批人公钥未加载，fail-closed
+      return false;
+    }
+
     final signData = _buildSignData(request);
-    final expectedSignature = WalletFFIService().hmacSha256(approverId, signData);
-    
-    return signature == expectedSignature;
+    return Secp256k1Utils.verifyMessage(
+      message: signData,
+      signatureHex: signature,
+      publicKeyHex: publicKey,
+    );
   }
-  
+
   String _buildSignData(MofNRequest request) {
     final payloadStr = jsonEncode(request.payload);
     return '${request.id}:${request.threshold}:${request.operationType.name}:$payloadStr:${request.createdAt.millisecondsSinceEpoch}';

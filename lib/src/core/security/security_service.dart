@@ -78,7 +78,8 @@ class SecurityService {
       return result.rooted;
     } catch (e) {
       debugPrint('[Security] Root check unavailable (native not implemented): $e');
-      return false;
+      // fail-closed: 检测不可用时假定不安全（Release）或安全（Debug）
+      return kReleaseMode;
     }
   }
   
@@ -91,7 +92,7 @@ class SecurityService {
       return isDebugged;
     } catch (e) {
       debugPrint('[Security] Debugger check unavailable: $e');
-      return false;
+      return kReleaseMode;
     }
   }
   
@@ -104,7 +105,7 @@ class SecurityService {
       return result.hooked;
     } catch (e) {
       debugPrint('[Security] Hook check unavailable: $e');
-      return false;
+      return kReleaseMode;
     }
   }
   
@@ -137,10 +138,12 @@ class SecurityService {
       );
     } catch (e) {
       debugPrint('[Security] Security check failed: $e');
+      // fail-closed: 安全检测异常时在 Release 模式下假定设备已被入侵
+      // 与 _checkRooted/_checkDebugger/_checkHookFrameworks 策略一致
       return SecurityCheckResult(
-        isRooted: false,
-        isDebugged: false,
-        isHooked: false,
+        isRooted: kReleaseMode,
+        isDebugged: kReleaseMode,
+        isHooked: kReleaseMode,
       );
     }
   }

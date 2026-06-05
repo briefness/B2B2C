@@ -56,9 +56,17 @@ class DAppBrowserService {
         return _handleSendTransaction(request);
         
       case 'personal_sign':
-      case 'eth_sign':
         return _handleSignRequest(request);
-        
+
+      case 'eth_sign':
+        // ⚠️ 安全策略: 禁用 eth_sign (EIP-712 §eth_sign)
+        // eth_sign 对原始 32 字节哈希签名，恶意 DApp 可构造等同于
+        // eth_sendTransaction 的签名。行业标准做法是拒绝 eth_sign。
+        return DAppResponse(
+          id: request.id,
+          success: false,
+          error: 'eth_sign is disabled for security. Use personal_sign or eth_signTypedData_v4.',
+        );
       case 'eth_signTypedData':
       case 'eth_signTypedData_v4':
         return _handleSignTypedData(request);

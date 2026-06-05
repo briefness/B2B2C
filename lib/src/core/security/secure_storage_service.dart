@@ -33,9 +33,8 @@ class SecureStorageService {
     
     // 初始化 Hive
     await Hive.initFlutter();
-    _hiveBox = await Hive.openBox('b2b2c_wallet');
     
-    // 初始化安全存储
+    // 初始化安全存储 (需要先初始化，后续用于获取 Hive 加密密钥)
     _secureStorage = const FlutterSecureStorage(
       aOptions: AndroidOptions(
         encryptedSharedPreferences: true,
@@ -48,7 +47,32 @@ class SecureStorageService {
       ),
     );
     
+    // 获取或生成 Hive Box 加密密钥 (256-bit AES)
+    final hiveEncryptionKey = await _getOrCreateHiveKey();
+    _hiveBox = await Hive.openBox(
+      'b2b2c_wallet',
+      encryptionCipher: HiveAesCipher(hiveEncryptionKey),
+    );
+    
     _isInitialized = true;
+  }
+  
+  /// 获取或生成 Hive Box 加密密钥
+  ///
+  /// 密钥存储在 SecureStorage (Android: EncryptedSharedPreferences,
+  /// iOS: Keychain) 中，确保 Root 用户无法直接读取 Hive 数据。
+  Future<List<int>> _getOrCreateHiveKey() async {
+    const keyName = 'hive_encryption_key';
+    final existingKey = await _secureStorage.read(key: keyName);
+    
+    if (existingKey != null && existingKey.isNotEmpty) {
+      return base64Decode(existingKey);
+    }
+    
+    // 首次使用：生成 256-bit 随机密钥
+    final newKey = Hive.generateSecureKey();
+    await _secureStorage.write(key: keyName, value: base64Encode(newKey));
+    return newKey;
   }
   
   // ==================== 安全存储 (敏感数据) ====================

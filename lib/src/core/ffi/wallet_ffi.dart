@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
-import 'dart:typed_data';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 
 /// Rust 核心库 FFI 绑定
 /// 
@@ -97,6 +99,7 @@ typedef _GetVersionDart = Pointer<Utf8> Function();
 
 _GenerateMnemonicDart? _generateMnemonic;
 _FreeMnemonicDart? _freeMnemonic;
+_FreeMnemonicDart? _freeString;
 _MnemonicToSeedDart? _mnemonicToSeed;
 _ValidateMnemonicDart? _validateMnemonic;
 _DeriveKeyDart? _deriveKey;
@@ -118,6 +121,11 @@ void _initFFI() {
   _freeMnemonic =
       lib.lookupFunction<_FreeMnemonicNative, _FreeMnemonicDart>(
           'free_mnemonic');
+  
+  // free_string 是 Rust 分配器的正确释放器，用于释放所有 Rust 返回的指针
+  _freeString =
+      lib.lookupFunction<_FreeMnemonicNative, _FreeMnemonicDart>(
+          'free_string');
   
   _mnemonicToSeed =
       lib.lookupFunction<_MnemonicToSeedNative, _MnemonicToSeedDart>(
@@ -184,8 +192,22 @@ String getCoreVersion() {
   ensureInitialized();
   final ptr = _getVersion!();
   final result = ptr.toDartString();
-  calloc.free(ptr);
+  _freeRustString(ptr);
   return result;
+}
+
+/// 释放 Rust 返回的 C 字符串指针
+///
+/// ⚠️ Rust 通过 CString::into_raw() 分配的内存必须由 Rust 的 free_string 释放，
+///    不能用 calloc.free()（分配器不匹配会导致 UB / 崩溃）。
+/// Rust 端会在释放前对内存进行 zeroize，确保敏感数据不残留。
+void _freeRustString(Pointer<Utf8> ptr) {
+  if (ptr == nullptr) return;
+  if (_freeString != null) {
+    _freeString!(ptr);
+  } else if (_freeMnemonic != null) {
+    _freeMnemonic!(ptr);
+  }
 }
 
 /// 生成助记词
@@ -201,7 +223,7 @@ String generateMnemonic([MnemonicStrength strength = MnemonicStrength.bits128]) 
   }
   
   final result = ptr.toDartString();
-  calloc.free(ptr);
+  _freeRustString(ptr);
   
   return result;
 }
@@ -211,9 +233,12 @@ bool validateMnemonic(String mnemonic) {
   ensureInitialized();
   
   final mnemonicPtr = mnemonic.toNativeUtf8(allocator: _allocator);
-  final result = _validateMnemonic!(mnemonicPtr);
-  
-  return result == 1;
+  try {
+    final result = _validateMnemonic!(mnemonicPtr);
+    return result == 1;
+  } finally {
+    calloc.free(mnemonicPtr);
+  }
 }
 
 /// 助记词转种子
@@ -223,16 +248,18 @@ String mnemonicToSeed(String mnemonic, [String passphrase = '']) {
   final mnemonicPtr = mnemonic.toNativeUtf8(allocator: _allocator);
   final passphrasePtr = passphrase.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _mnemonicToSeed!(mnemonicPtr, passphrasePtr);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to convert mnemonic to seed');
+  try {
+    final ptr = _mnemonicToSeed!(mnemonicPtr, passphrasePtr);
+    if (ptr == nullptr) {
+      throw Exception('Failed to convert mnemonic to seed');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    calloc.free(mnemonicPtr);
+    calloc.free(passphrasePtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
 /// 从种子派生私钥
@@ -242,16 +269,18 @@ String deriveKey(String seedHex, String path) {
   final seedPtr = seedHex.toNativeUtf8(allocator: _allocator);
   final pathPtr = path.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _deriveKey!(seedPtr, pathPtr);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to derive key');
+  try {
+    final ptr = _deriveKey!(seedPtr, pathPtr);
+    if (ptr == nullptr) {
+      throw Exception('Failed to derive key');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    calloc.free(seedPtr);
+    calloc.free(pathPtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
 /// 从种子派生地址
@@ -261,16 +290,18 @@ String deriveAddress(String seedHex, String path) {
   final seedPtr = seedHex.toNativeUtf8(allocator: _allocator);
   final pathPtr = path.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _deriveAddress!(seedPtr, pathPtr);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to derive address');
+  try {
+    final ptr = _deriveAddress!(seedPtr, pathPtr);
+    if (ptr == nullptr) {
+      throw Exception('Failed to derive address');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    calloc.free(seedPtr);
+    calloc.free(pathPtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
 /// 对交易签名
@@ -281,16 +312,20 @@ String signTransaction(String privateKeyHex, String messageHashHex,
   final pkPtr = privateKeyHex.toNativeUtf8(allocator: _allocator);
   final msgPtr = messageHashHex.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _signTransaction!(pkPtr, msgPtr, chainId);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to sign transaction');
+  try {
+    final ptr = _signTransaction!(pkPtr, msgPtr, chainId);
+    if (ptr == nullptr) {
+      throw Exception('Failed to sign transaction');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    // 私钥参数指针含敏感数据，释放前先置零
+    _zeroNativeUtf8(pkPtr);
+    calloc.free(pkPtr);
+    calloc.free(msgPtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
 /// 计算 HMAC-SHA256
@@ -300,16 +335,20 @@ String computeHmac(String keyHex, String messageHex) {
   final keyPtr = keyHex.toNativeUtf8(allocator: _allocator);
   final msgPtr = messageHex.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _computeHmac!(keyPtr, msgPtr);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to compute HMAC');
+  try {
+    final ptr = _computeHmac!(keyPtr, msgPtr);
+    if (ptr == nullptr) {
+      throw Exception('Failed to compute HMAC');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    // HMAC 密钥含敏感数据，释放前先置零
+    _zeroNativeUtf8(keyPtr);
+    calloc.free(keyPtr);
+    calloc.free(msgPtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
 /// 生成随机字节
@@ -323,7 +362,7 @@ String generateRandomBytes(int length) {
   }
   
   final result = ptr.toDartString();
-  calloc.free(ptr);
+  _freeRustString(ptr);
   
   return result;
 }
@@ -334,229 +373,83 @@ String sha256Hash(String dataHex) {
   
   final dataPtr = dataHex.toNativeUtf8(allocator: _allocator);
   
-  final ptr = _sha256Hash!(dataPtr);
-  
-  if (ptr == nullptr) {
-    throw Exception('Failed to compute SHA256 hash');
+  try {
+    final ptr = _sha256Hash!(dataPtr);
+    if (ptr == nullptr) {
+      throw Exception('Failed to compute SHA256 hash');
+    }
+    final result = ptr.toDartString();
+    _freeRustString(ptr);
+    return result;
+  } finally {
+    calloc.free(dataPtr);
   }
-  
-  final result = ptr.toDartString();
-  calloc.free(ptr);
-  
-  return result;
 }
 
-// ==================== Dart 原生实现 (无 Rust 时降级) ====================
-
-/// 使用纯 Dart 的安全加密实现 (Dart 降级方案)
-class SecureCrypto {
-  /// 计算 HMAC-SHA256
-  static String hmacSha256Hex(String key, String message) {
-    final keyBytes = _stringToBytes(key);
-    final messageBytes = _stringToBytes(message);
-    
-    // 密钥处理：如果密钥长度 > 64，进行 SHA256
-    Uint8List processedKey;
-    if (keyBytes.length > 64) {
-      processedKey = Uint8List.fromList(_sha256Simple(keyBytes));
-    } else {
-      processedKey = keyBytes;
-    }
-    
-    // 填充密钥到 64 字节
-    final paddedKey = Uint8List(64);
-    for (var i = 0; i < 64; i++) {
-      paddedKey[i] = i < processedKey.length ? processedKey[i] : 0;
-    }
-    
-    // ipad = 0x36, opad = 0x5c
-    final ipad = Uint8List(64);
-    final opad = Uint8List(64);
-    for (var i = 0; i < 64; i++) {
-      ipad[i] = paddedKey[i] ^ 0x36;
-      opad[i] = paddedKey[i] ^ 0x5c;
-    }
-    
-    // inner = SHA256(ipad || message)
-    final innerData = Uint8List(ipad.length + messageBytes.length);
-    innerData.setAll(0, ipad);
-    innerData.setAll(ipad.length, messageBytes);
-    final innerHash = Uint8List.fromList(_sha256Simple(innerData));
-    
-    // outer = SHA256(opad || inner)
-    final outerData = Uint8List(opad.length + innerHash.length);
-    outerData.setAll(0, opad);
-    outerData.setAll(opad.length, innerHash);
-    final outerHash = Uint8List.fromList(_sha256Simple(outerData));
-    
-    return _bytesToHex(outerHash);
+/// 将原生 UTF8 缓冲区置零（用于释放含敏感数据的 Dart 分配指针）
+void _zeroNativeUtf8(Pointer<Utf8> ptr) {
+  if (ptr == nullptr) return;
+  final bytes = ptr.cast<Uint8>();
+  var i = 0;
+  // 逐字节置零直到 null 终止符
+  while (bytes[i] != 0) {
+    bytes[i] = 0;
+    i++;
   }
-  
+}
+
+// ==================== Dart 安全加密工具 ====================
+
+/// 使用 package:crypto 的安全加密实现
+///
+/// 当 Rust 核心不可用时作为降级方案（仅限 HMAC/SHA256/随机数，
+/// AES 等高级操作必须使用 Rust 或 pointycastle）。
+class SecureCrypto {
+  /// 计算 HMAC-SHA256（使用 package:crypto 的经过验证的实现）
+  static String hmacSha256Hex(String key, String message) {
+    final keyBytes = utf8.encode(key);
+    final messageBytes = utf8.encode(message);
+    final hmac = crypto.Hmac(crypto.sha256, keyBytes);
+    final digest = hmac.convert(messageBytes);
+    return digest.toString();
+  }
+
   /// SHA256 哈希
   static String sha256Hex(String data) {
-    final bytes = _stringToBytes(data);
-    final hash = _sha256Simple(bytes);
-    return _bytesToHex(Uint8List.fromList(hash));
+    final bytes = utf8.encode(data);
+    final digest = crypto.sha256.convert(bytes);
+    return digest.toString();
   }
-  
+
   /// SHA256 哈希 (字节输入)
   static String sha256Bytes(Uint8List data) {
-    final hash = _sha256Simple(data);
-    return _bytesToHex(Uint8List.fromList(hash));
+    final digest = crypto.sha256.convert(data);
+    return digest.toString();
   }
-  
+
   /// 生成随机字节 (十六进制)
+  ///
+  /// 使用 dart:math 的 Random.secure() 生成密码学安全的随机数。
   static String generateRandomBytesHex(int length) {
-    final random = _SecureRandom();
+    final random = Random.secure();
     final bytes = Uint8List(length);
     for (var i = 0; i < length; i++) {
       bytes[i] = random.nextInt(256);
     }
     return _bytesToHex(bytes);
   }
-  
-  /// AES-256-CBC 加密
-  static String aes256CbcEncrypt(String plaintext, String keyHex) {
-    final key = _hexToBytes(keyHex);
-    if (key.length < 32) {
-      throw ArgumentError('Key must be at least 32 bytes');
-    }
-    final key32 = key.sublist(0, 32);
-    
-    // 生成随机 IV
-    final iv = Uint8List(16);
-    final random = _SecureRandom();
-    for (var i = 0; i < 16; i++) {
-      iv[i] = random.nextInt(256);
-    }
-    
-    final plaintextBytes = _stringToBytes(plaintext);
-    // PKCS7 填充
-    final paddedLength = ((plaintextBytes.length / 16).floor() + 1) * 16;
-    final paddedData = Uint8List(paddedLength);
-    paddedData.setAll(0, plaintextBytes);
-    final padSize = paddedLength - plaintextBytes.length;
-    for (var i = 0; i < padSize; i++) {
-      paddedData[plaintextBytes.length + i] = padSize;
-    }
-    
-    // CBC 加密 (使用简化 XOR 模式，生产环境应使用真正的 AES)
-    final encrypted = Uint8List(paddedLength);
-    var prevBlock = Uint8List.fromList(iv);
-    for (var i = 0; i < paddedLength; i += 16) {
-      final block = paddedData.sublist(i, i + 16);
-      // XOR with previous ciphertext (or IV for first block)
-      final xored = Uint8List(16);
-      for (var j = 0; j < 16; j++) {
-        xored[j] = block[j] ^ prevBlock[j];
-      }
-      // 使用 SHA256 作为伪随机置换 (生产环境应使用真正的 AES)
-      final hashInput = Uint8List(key32.length + xored.length);
-      hashInput.setAll(0, key32.sublist(0, 16));
-      hashInput.setAll(16, xored);
-      final hash = Uint8List.fromList(_sha256Simple(hashInput));
-      encrypted.setAll(i, hash.sublist(0, 16));
-      prevBlock = hash.sublist(0, 16);
-    }
-    
-    // 返回 IV || 密文
-    final result = Uint8List(16 + encrypted.length);
-    result.setAll(0, iv);
-    result.setAll(16, encrypted);
-    return _bytesToHex(result);
-  }
-  
-  /// AES-256-CBC 解密
-  static String? aes256CbcDecrypt(String ciphertextHex, String keyHex) {
-    try {
-      final data = _hexToBytes(ciphertextHex);
-      if (data.length < 32) return null;
-      
-      final key = _hexToBytes(keyHex);
-      if (key.length < 32) return null;
-      final key32 = key.sublist(0, 32);
-      
-      final iv = data.sublist(0, 16);
-      final encrypted = data.sublist(16);
-      
-      // CBC 解密 (逆向操作)
-      final decrypted = Uint8List(encrypted.length);
-      var prevBlock = Uint8List.fromList(iv);
-      for (var i = 0; i < encrypted.length; i += 16) {
-        final block = encrypted.sublist(i, i + 16);
-        // 逆向 SHA256 置换
-        final hashInput = Uint8List(key32.length + block.length);
-        hashInput.setAll(0, key32.sublist(0, 16));
-        hashInput.setAll(16, block);
-        final hash = Uint8List.fromList(_sha256Simple(hashInput));
-        final xored = Uint8List.fromList(hash.sublist(0, 16));
-        for (var j = 0; j < 16; j++) {
-          decrypted[i + j] = xored[j] ^ prevBlock[j];
-        }
-        prevBlock = block;
-      }
-      
-      // 移除 PKCS7 填充
-      final padSize = decrypted.last;
-      if (padSize > 16 || padSize == 0) return null;
-      final result = decrypted.sublist(0, decrypted.length - padSize);
-      return _bytesToString(result);
-    } catch (e) {
-      return null;
-    }
-  }
-  
-  /// 简化的 SHA256 实现 (使用 package:crypto)
-  static List<int> _sha256Simple(List<int> data) {
-    return crypto.sha256.convert(data).bytes;
-  }
-  
-  static Uint8List _stringToBytes(String s) {
-    return Uint8List.fromList(s.codeUnits);
-  }
-  
-  static String _bytesToString(Uint8List bytes) {
-    return String.fromCharCodes(bytes);
-  }
-  
+
   static String _bytesToHex(Uint8List bytes) {
     return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
-  
-  static Uint8List _hexToBytes(String hex) {
-    final result = Uint8List(hex.length ~/ 2);
-    for (var i = 0; i < hex.length; i += 2) {
-      result[i ~/ 2] = int.parse(hex.substring(i, i + 2), radix: 16);
-    }
-    return result;
-  }
 }
 
-/// 安全随机数生成器
-class _SecureRandom {
-  int _seed = DateTime.now().microsecondsSinceEpoch;
-  
-  int nextInt(int max) {
-    _seed = (_seed * 1103515245 + 12345) & 0x7FFFFFFF;
-    return _seed % max;
-  }
-}
-
-/// Dart 原生加密实现 (备用)
-class DartCryptoFallback {
-  static final _secureRandom = _SecureRandom();
-  
-  static String generateRandomBytesHex(int length) {
-    return SecureCrypto.generateRandomBytesHex(length);
-  }
-  
-  static String sha256Hex(String data) {
-    return SecureCrypto.sha256Hex(data);
-  }
-  
-  static String hmacSha256Hex(String key, String message) {
-    return SecureCrypto.hmacSha256Hex(key, message);
-  }
+/// 异常：Rust 核心库不可用
+class RustCoreUnavailableException implements Exception {
+  final String message;
+  RustCoreUnavailableException([this.message = 'Rust 核心库未加载，将无法使用加密功能']);
+  @override
+  String toString() => 'RustCoreUnavailableException: $message';
 }
 
 /// 钱包 FFI 服务
@@ -570,46 +463,53 @@ class WalletFFIService {
       ensureInitialized();
       final version = getCoreVersion();
       _rustAvailable = version.isNotEmpty;
-      print('Wallet FFI: Rust core v$version initialized');
+      debugPrint('[WalletFFI] Rust core v$version initialized');
     } catch (e) {
-      print('Wallet FFI: Falling back to Dart implementation');
       _rustAvailable = false;
+      if (kReleaseMode) {
+        // Release 模式下 Rust 核心库不可用是致命错误，必须阻断启动
+        throw RustCoreUnavailableException(
+          'Rust 核心库加载失败: $e。此错误在 Release 模式下不可恢复。',
+        );
+      }
+      // Debug 模式允许继续，但记录警告
+      debugPrint('[WalletFFI] ⚠️ WARNING: Rust core unavailable, using Dart crypto fallback (debug only)');
     }
   }
-  
+
   String generateRandomBytes(int length) {
     if (_rustAvailable) {
-      // 直接调用顶层 FFI 函数
       ensureInitialized();
       if (!isFfiAvailable || _generateRandomBytes == null) {
-        return DartCryptoFallback.generateRandomBytesHex(length);
+        return SecureCrypto.generateRandomBytesHex(length);
       }
       final ptr = _generateRandomBytes!(length);
       if (ptr == nullptr) {
-        return DartCryptoFallback.generateRandomBytesHex(length);
+        return SecureCrypto.generateRandomBytesHex(length);
       }
       final result = ptr.toDartString();
-      calloc.free(ptr);
+      _freeRustString(ptr);
       return result;
     }
-    return DartCryptoFallback.generateRandomBytesHex(length);
+    // Dart fallback 使用 Random.secure()
+    return SecureCrypto.generateRandomBytesHex(length);
   }
-  
+
   String sha256(String data) {
     if (_rustAvailable) {
       final hex = _toHex(data);
       return sha256Hash(hex);
     }
-    return DartCryptoFallback.sha256Hex(data);
+    return SecureCrypto.sha256Hex(data);
   }
-  
+
   String hmacSha256(String key, String message) {
     if (_rustAvailable) {
       final keyHex = _toHex(key);
       final msgHex = _toHex(message);
       return computeHmac(keyHex, msgHex);
     }
-    return DartCryptoFallback.hmacSha256Hex(key, message);
+    return SecureCrypto.hmacSha256Hex(key, message);
   }
   
   String _toHex(String data) {

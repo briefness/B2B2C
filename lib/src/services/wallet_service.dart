@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
+import '../core/crypto/aes_gcm_utils.dart';
 import '../core/ffi/ffi.dart';
 import '../core/security/secure_storage_service.dart';
 import '../core/security/security_service.dart';
@@ -258,7 +261,7 @@ class WalletService {
     await _storage.writeWalletInfo(wallet.id, wallet.toJson());
     
     // 2. 加密并存储助记词
-    final encryptedMnemonic = _encryptMnemonic(mnemonic, passphrase ?? '');
+    final encryptedMnemonic = await _encryptMnemonic(mnemonic, passphrase ?? '');
     await _storage.writeMnemonic(wallet.id, encryptedMnemonic);
     
     // 3. 添加到钱包列表
@@ -304,19 +307,46 @@ class WalletService {
   
   String _generateRandomString(int length) {
     const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    final random = List.generate(length, (index) {
-      return chars[DateTime.now().microsecondsSinceEpoch % chars.length];
-    }).join();
-    return random;
+    final random = Random.secure();
+    return List.generate(
+      length,
+      (_) => chars[random.nextInt(chars.length)],
+    ).join();
   }
   
-  String _encryptMnemonic(String mnemonic, String passphrase) {
-    // 生成随机密钥
-    final key = SecureCrypto.generateRandomBytesHex(32);
-    // 使用 AES-256-CBC 加密
-    final encrypted = SecureCrypto.aes256CbcEncrypt(mnemonic, key);
-    // 返回 密钥 + 分隔符 + 密文
-    return '$key:$encrypted';
+  /// 加密助记词
+  ///
+  /// 使用 AES-256-GCM，密钥通过 PBKDF2 从用户口令派生。
+  /// 输出不包含密钥本身，避免之前「密钥+密文拼接」等同明文的问题。
+  Future<String> _encryptMnemonic(String mnemonic, String passphrase) async {
+    // 空口令时使用设备绑定的默认口令补偿（仍优于明文）
+    final effectivePassphrase =
+        passphrase.isNotEmpty ? passphrase : await _deviceBoundFallbackKey();
+    return AesGcmUtils.encryptWithPassphrase(mnemonic, effectivePassphrase);
+  }
+
+  /// 解密助记词
+  ///
+  /// 口令错误或数据被篡改时返回 null。
+  Future<String?> _decryptMnemonic(String encrypted, String passphrase) async {
+    final effectivePassphrase =
+        passphrase.isNotEmpty ? passphrase : await _deviceBoundFallbackKey();
+    return AesGcmUtils.decryptWithPassphrase(encrypted, effectivePassphrase);
+  }
+
+  /// 设备绑定的降级口令
+  ///
+  /// 仅在用户未设置口令时使用。密钥首次生成后持久化到 SecureStorage，
+  /// 确保加密/解密使用同一密钥。生产环境应强制用户设置口令
+  /// 或绑定生物识别/Secure Enclave。
+  Future<String> _deviceBoundFallbackKey() async {
+    const storageKey = 'device_bound_fallback_key';
+    var key = await _storage.readSecure(storageKey);
+    if (key == null || key.isEmpty) {
+      key = SecureCrypto.generateRandomBytesHex(16);
+      await _storage.writeSecure(storageKey, key);
+    }
+    return key;
   }
   
   String _buildTransactionHash({

@@ -415,16 +415,32 @@ class DAppSandboxService {
   }
   
   // ==================== 地址白名单 ====================
-  
-  bool _isWhiteListed(String address) {
-    // TODO: 检查地址白名单
-    return false;
+
+  /// 已知可信合约地址白名单
+  final _whitelistedAddresses = <String>{};
+
+  /// 加载可信地址白名单（从可信服务端）
+  void loadWhitelist(Set<String> addresses) {
+    _whitelistedAddresses
+      ..clear()
+      ..addAll(addresses.map((a) => a.toLowerCase()));
   }
-  
+
+  bool _isWhiteListed(String address) {
+    return _whitelistedAddresses.contains(address.toLowerCase());
+  }
+
   /// 验证合约地址
+  ///
+  /// fail-closed：未通过云端验证或不在白名单中的合约默认视为不可信。
+  /// 这确保了在验证服务不可用时不会误放行风险合约。
   Future<bool> verifyContract(String address) async {
-    // TODO: 调用云端验证合约安全性
-    return true;
+    // 白名单内直接放行
+    if (_isWhiteListed(address)) return true;
+
+    // TODO: 调用云端验证合约安全性，返回前默认 fail-closed
+    // 在云端验证接入前，非白名单合约一律返回 false（需用户显式确认风险）
+    return false;
   }
   
   // ==================== 清理 ====================

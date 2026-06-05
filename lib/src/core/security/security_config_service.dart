@@ -1,6 +1,7 @@
 import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
+
+import '../crypto/ecdsa_utils.dart';
 
 /// 安全配置服务
 /// 
@@ -117,53 +118,22 @@ class SecurityConfigService {
     }
   }
   
-  /// 验证配置签名
-  /// 
-  /// 使用 HMAC-SHA256 验证配置 JSON 的完整性。
-  /// 生产环境应替换为 ECDSA/Ed25519 非对称签名验证。
+  /// 验证配置签名 (secp256k1 ECDSA)
+  ///
+  /// 使用 ECDSA 非对称签名验证配置 JSON 的完整性。
+  /// 客户端仅持有公钥，无法伪造签名。
   bool _verifyConfigSignature({
     required String configJson,
     required String signature,
     required String publicKey,
   }) {
     if (publicKey.isEmpty || signature.isEmpty) return false;
-    
-    // 使用 HMAC-SHA256 验证 (对称签名)
-    // TODO: 生产环境替换为 ECDSA 非对称验签 (使用 pointycastle)
-    final keyBytes = _hexDecode(publicKey);
-    if (keyBytes == null) return false;
-    
-    final configBytes = utf8.encode(configJson);
-    final hmac = Hmac(sha256, keyBytes);
-    final digest = hmac.convert(configBytes);
-    final expectedSignature = digest.toString();
-    
-    // 恒定时间比较
-    return _constantTimeCompare(expectedSignature, signature);
-  }
-  
-  /// 恒定时间字符串比较
-  static bool _constantTimeCompare(String a, String b) {
-    if (a.length != b.length) return false;
-    var result = 0;
-    for (var i = 0; i < a.length; i++) {
-      result |= a.codeUnitAt(i) ^ b.codeUnitAt(i);
-    }
-    return result == 0;
-  }
-  
-  /// 十六进制解码
-  static List<int>? _hexDecode(String hex) {
-    if (hex.length % 2 != 0) return null;
-    try {
-      final result = <int>[];
-      for (var i = 0; i < hex.length; i += 2) {
-        result.add(int.parse(hex.substring(i, i + 2), radix: 16));
-      }
-      return result;
-    } catch (_) {
-      return null;
-    }
+
+    return Secp256k1Utils.verifyMessage(
+      message: configJson,
+      signatureHex: signature,
+      publicKeyHex: publicKey,
+    );
   }
   
   /// 同步加载配置 (从内存)

@@ -27,7 +27,18 @@ class DAppBrowserPage extends ConsumerStatefulWidget {
 class _DAppBrowserPageState extends ConsumerState<DAppBrowserPage> {
   late final WebViewController _controller;
   final DAppBrowserController _dappController = DAppBrowserController();
-  
+
+  /// DApp 域名白名单
+  ///
+  /// 仅白名单内的域名会注入 Web3 Provider。
+  /// 生产环境应从 SecurityConfigService 动态加载。
+  static const _allowedDomains = {
+    'app.uniswap.org',
+    'pancakeswap.finance',
+    'app.aave.com',
+    'opensea.io',
+    // TODO: 从远程配置动态加载
+  };
   double _loadingProgress = 0;
   String _currentUrl = '';
   String _currentTitle = '';
@@ -87,9 +98,11 @@ class _DAppBrowserPageState extends ConsumerState<DAppBrowserPage> {
               setState(() { _currentTitle = title; });
             }
             
-            if (!_isProviderInjected) {
+            if (!_isProviderInjected && _isAllowedDomain(_currentUrl)) {
               await _dappController.injectProvider();
               _isProviderInjected = true;
+            } else if (!_isAllowedDomain(_currentUrl)) {
+              _isProviderInjected = false; // 离开白名单域名后重置
             }
             
             _updateNavigationState();
@@ -98,7 +111,8 @@ class _DAppBrowserPageState extends ConsumerState<DAppBrowserPage> {
             setState(() { _loadingProgress = progress / 100; });
           },
           onNavigationRequest: (request) {
-            if (!request.url.startsWith('https://') && !request.url.startsWith('http://')) {
+            // 仅允许 HTTPS（安全 WebView 不应加载 HTTP）
+            if (!request.url.startsWith('https://')) {
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
@@ -113,32 +127,48 @@ class _DAppBrowserPageState extends ConsumerState<DAppBrowserPage> {
   void _handleJavaScriptMessage(JavaScriptMessage message) async {
     try {
       final payload = jsonDecode(message.message) as Map<String, dynamic>;
-      
+
       final request = DAppRequest(
         id: payload['id']?.toString() ?? '',
         method: payload['method'] as String? ?? '',
         params: payload['params'],
         riskLevel: RiskLevel.low,
       );
-      
+
       _handleDAppRequest(request);
-      
+
       final response = await _service.handleRequest(request);
-      
-      await _controller.runJavaScript('''
-        window.postMessage({
-          type: 'web3Response',
-          id: '${response.id}',
-          result: ${response.result ?? 'null'},
-          error: ${response.error != null ? '"${response.error}"' : 'null'}
-        }, '*');
-      ''');
+
+      // 安全的 JS 注入：使用 JSON 序列化避免字符串插值注入
+      final safePayload = jsonEncode({
+        'type': 'web3Response',
+        'id': response.id,
+        'result': response.result,
+        'error': response.error,
+      });
+      // 转义单引号以防止 JS 字符串逃逸
+      final escaped = safePayload.replaceAll("'", r"\'");
+      await _controller.runJavaScript(
+        "window.postMessage(JSON.parse('$escaped'), window.location.origin);",
+      );
     } catch (e) {
-      debugPrint('[DApp] JS message handler error: $e');
+      debugPrint('[DApp] JS message handler error: \$e');
     }
   }
   
   DAppBrowserService get _service => DAppBrowserService();
+
+  /// 检查 URL 是否在白名单域名内
+  bool _isAllowedDomain(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return _allowedDomains.any(
+        (domain) => uri.host == domain || uri.host.endsWith('.$domain'),
+      );
+    } catch (_) {
+      return false;
+    }
+  }
   
   Future<void> _updateNavigationState() async {
     final canGoBack = await _controller.canGoBack();
@@ -177,13 +207,16 @@ class _DAppBrowserPageState extends ConsumerState<DAppBrowserPage> {
     if (result == true) {
       // TODO: 执行签名
     } else {
-      await _dappController.evaluateJs('''
-        window.postMessage({
-          type: 'web3Response',
-          id: '${request.id}',
-          error: 'User rejected'
-        }, '*');
-      ''');
+      // 安全的拒绝响应
+      final rejectPayload = jsonEncode({
+        'type': 'web3Response',
+        'id': request.id,
+        'error': 'User rejected',
+      });
+      final escaped = rejectPayload.replaceAll("'", r"\'");
+      await _dappController.evaluateJs(
+        "window.postMessage(JSON.parse('$escaped'), window.location.origin);",
+      );
     }
     
     setState(() { _pendingRequest = null; });
